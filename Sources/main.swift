@@ -43,7 +43,7 @@ let controller = ClarifyController(
     original: hasSelection ? piped : "",
     pasteTarget: NSWorkspace.shared.menuBarOwningApplication,
     rewriter: ClaudeRewriter(voiceGuide: voiceGuide),
-    onFinish: { NSApp.terminate(nil) }
+    onFinish: { _ in NSApp.terminate(nil) }
 )
 controller.start()
 app.run()

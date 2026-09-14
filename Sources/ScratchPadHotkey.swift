@@ -44,35 +44,51 @@ final class ScratchPadHotkeyListener {
         guard let combination = try? HotkeyCombination.parse(hotkey) else {
             stopListening("\(hotkey) in settings is not a valid hotkey. Change it in Clarify Settings.")
         }
-        guard HotkeyRegistration.listen(for: combination, onPress: { [weak self] in self?.openScratchPad() }) else {
+        guard HotkeyRegistration.listen(for: combination, onPress: { [weak self] in self?.hotkeyPressed() }) else {
             stopListening("\(hotkey) is already taken by another app. Change it in Clarify Settings.")
         }
         activationObserver = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self, self.controller == nil else { return }
-            self.openScratchPad()
+            self.openPad(with: "", pasteTarget: nil)
         }
         if !AccessibilityPermission.isGranted() {
-            FileHandle.standardError.write(Data("Accessibility is not allowed for Clarify yet, so the hotkey cannot read the selection. Allow it in System Settings > Privacy & Security > Accessibility.\n".utf8))
+            log("Accessibility is not allowed for Clarify yet, so the hotkey cannot read the selection. Allow it in System Settings > Privacy & Security > Accessibility.")
         }
     }
 
-    private func openScratchPad() {
-        if let controller {
-            controller.reveal()
+    private func hotkeyPressed() {
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        let pressedInsideClarify = frontApp?.processIdentifier == ProcessInfo.processInfo.processIdentifier
+        if pressedInsideClarify {
+            controller?.reveal()
+            if controller == nil { openPad(with: "", pasteTarget: nil) }
             return
         }
         waitForModifierRelease()
-        let pasteTarget = NSWorkspace.shared.frontmostApplication
         let selection = SelectedText.inFrontApp() ?? ""
-        log("Hotkey pressed in \(pasteTarget?.localizedName ?? "unknown app"): accessibility \(AXIsProcessTrusted() ? "on" : "off"), selection \(selection.count) characters")
+        log("Hotkey pressed in \(frontApp?.localizedName ?? "unknown app"): accessibility \(AXIsProcessTrusted() ? "on" : "off"), selection \(selection.count) characters")
+        if let controller {
+            guard !selection.isEmpty else {
+                controller.reveal()
+                return
+            }
+            controller.discard()
+            self.controller = nil
+        }
+        openPad(with: selection, pasteTarget: frontApp)
+    }
+
+    private func openPad(with selection: String, pasteTarget: NSRunningApplication?) {
         let voiceGuide = ClarifySettings.voiceGuide.trimmingCharacters(in: .whitespacesAndNewlines)
         let controller = ClarifyController(
             source: .scratchpad,
             original: selection,
             pasteTarget: pasteTarget,
             rewriter: ClaudeRewriter(voiceGuide: voiceGuide),
-            onFinish: { [weak self] in
-                DispatchQueue.main.async { self?.controller = nil }
+            onFinish: { [weak self] finished in
+                DispatchQueue.main.async {
+                    if self?.controller === finished { self?.controller = nil }
+                }
             }
         )
         self.controller = controller
@@ -91,7 +107,7 @@ final class ScratchPadHotkeyListener {
     }
 
     private func stopListening(_ message: String) -> Never {
-        FileHandle.standardError.write(Data("\(message)\n".utf8))
+        log(message)
         exit(0)
     }
 }

@@ -11,7 +11,7 @@ final class ClarifyController {
     private static let clarifyBundlePrefix = "com.careyscott.clarify"
 
     private let source: DraftSource
-    private let onFinish: () -> Void
+    private let onFinish: (ClarifyController) -> Void
     private var pasteTarget: NSRunningApplication?
     private var original: String
     private var draft: String
@@ -31,7 +31,7 @@ final class ClarifyController {
             && !(app.bundleIdentifier ?? "").hasPrefix(clarifyBundlePrefix)
     }
 
-    init(source: DraftSource, original: String, pasteTarget: NSRunningApplication?, rewriter: ClaudeRewriter, onFinish: @escaping () -> Void) {
+    init(source: DraftSource, original: String, pasteTarget: NSRunningApplication?, rewriter: ClaudeRewriter, onFinish: @escaping (ClarifyController) -> Void) {
         self.source = source
         self.onFinish = onFinish
         self.pasteTarget = Self.canReceivePaste(pasteTarget) ? pasteTarget : nil
@@ -226,7 +226,7 @@ final class ClarifyController {
         NSWorkspace.shared.openApplication(at: settingsApp, configuration: NSWorkspace.OpenConfiguration())
     }
 
-    private func finish() {
+    func discard() {
         rewriter.cancel()
         panel.close()
         if let activationObserver { NotificationCenter.default.removeObserver(activationObserver) }
@@ -234,6 +234,10 @@ final class ClarifyController {
         activationObserver = nil
         appSwitchObserver = nil
         NSApp.setActivationPolicy(.accessory)
-        onFinish()
+    }
+
+    private func finish() {
+        discard()
+        onFinish(self)
     }
 }
