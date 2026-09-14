@@ -116,17 +116,17 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
     private let window: KeyPanel
     private let stack = NSStackView()
     private let notesLabel = NSTextField(wrappingLabelWithString: "")
-    private let settingsButton = NSButton()
-    private let closeButton = NSButton()
+    private let settingsButton = IconButton()
+    private let closeButton = IconButton()
     private let diffView = NSTextView()
     private let diffScroll = NSScrollView()
     private let draftEditor = NSTextView()
     private let draftScroll = NSScrollView()
     private let contextImagesRow = NSStackView()
-    private let composeScreenshotButton = NSButton()
-    private let chatScreenshotButton = NSButton()
+    private let composeScreenshotButton = IconButton()
+    private let chatScreenshotButton = IconButton()
     private let inputField = NSTextField()
-    private let sendButton = NSButton()
+    private let sendButton = PressableButton()
     private let chatDivider = NSView()
     private let chatRow = NSStackView()
     private lazy var copyButton = PillButton(isPrimary: false, target: self, action: #selector(copyPressed))
@@ -228,6 +228,11 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
         fitWindowToContent()
     }
 
+    func confirmCopy() {
+        let buttonThatCopied = copyButton.isHidden ? primaryButton : copyButton
+        buttonThatCopied.showConfirmation("Copied")
+    }
+
     func showContextImages(_ images: [NSImage]) {
         contextImagesRow.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for (index, image) in images.enumerated() {
@@ -246,6 +251,7 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
         switch commandSelector {
         case #selector(NSResponder.insertNewline(_:)):
+            if hasSomethingToSend { sendButton.playPress() }
             sendInstruction()
             return true
         case #selector(NSResponder.cancelOperation(_:)):
@@ -304,7 +310,11 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
         window.isMovableByWindowBackground = true
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.appearance = NSAppearance(named: .darkAqua)
-        window.onCommandReturn = { [weak self] in self?.primaryPressed() }
+        window.onCommandReturn = { [weak self] in
+            guard let self else { return }
+            if self.primaryButton.isEnabled { self.primaryButton.playPress() }
+            self.primaryPressed()
+        }
         window.onEscape = { [weak self] in self?.onCancel?() }
         window.onPasteImages = { [weak self] images in self?.onAddImages?(images) }
     }
@@ -423,12 +433,14 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
         button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
         button.image?.isTemplate = true
         button.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-        button.contentTintColor = NSColor.white.withAlphaComponent(0.8)
+        button.contentTintColor = IconButton.restingTint
         button.isBordered = false
         button.imageScaling = .scaleProportionallyDown
         button.toolTip = tooltip
         button.target = self
         button.action = action
+        button.wantsLayer = true
+        button.layer?.cornerRadius = Self.iconButtonSide / 2
         button.widthAnchor.constraint(equalToConstant: Self.iconButtonSide).isActive = true
         button.heightAnchor.constraint(equalToConstant: Self.iconButtonSide).isActive = true
     }

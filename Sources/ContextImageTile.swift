@@ -28,7 +28,7 @@ final class ContextImageTile: NSView {
         thumbnail.addGestureRecognizer(NSClickGestureRecognizer(target: self, action: #selector(previewPressed)))
         addSubview(thumbnail)
 
-        let removeButton = NSButton(frame: NSRect(
+        let removeButton = PressableButton(frame: NSRect(
             x: side - Self.removeButtonSide - Self.removeButtonInset,
             y: side - Self.removeButtonSide - Self.removeButtonInset,
             width: Self.removeButtonSide,
@@ -48,5 +48,7 @@ final class ContextImageTile: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     @objc private func previewPressed() { onPreview(self) }
-    @objc private func removePressed() { onRemove() }
+    @objc private func removePressed() {
+        ButtonMotion.dismiss(self) { [weak self] in self?.onRemove() }
+    }
 }

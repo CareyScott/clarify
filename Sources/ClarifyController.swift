@@ -218,7 +218,7 @@ final class ClarifyController {
     private func copyDraft() {
         guard !isWorking else { return }
         Clipboard.copy(draft)
-        panel.showNote("Copied.")
+        panel.confirmCopy()
     }
 
     private static func openSettings() {
