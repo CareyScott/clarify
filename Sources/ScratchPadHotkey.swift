@@ -48,6 +48,9 @@ final class ScratchPadHotkeyListener {
             guard let self, self.controller == nil else { return }
             self.openScratchPad()
         }
+        if !AccessibilityPermission.isGranted() {
+            FileHandle.standardError.write(Data("Accessibility is not allowed for Clarify yet, so the hotkey cannot read the selection. Allow it in System Settings > Privacy & Security > Accessibility.\n".utf8))
+        }
     }
 
     private func openScratchPad() {
