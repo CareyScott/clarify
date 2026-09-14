@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+CLARIFY_ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+CLARIFY_APP="$CLARIFY_ROOT/build/Clarify"
+
+selected_text() {
+  local saved sentinel text attempts
+  saved="$(pbpaste 2>/dev/null || true)"
+  sentinel="clarify-selection-sentinel-$$"
+  printf '%s' "$sentinel" | pbcopy
+  osascript -e 'tell application "System Events" to keystroke "c" using command down' >/dev/null
+  text="$sentinel"
+  attempts=0
+  while [ "$text" = "$sentinel" ] && [ "$attempts" -lt 30 ]; do
+    sleep 0.05
+    text="$(pbpaste 2>/dev/null || true)"
+    attempts=$((attempts + 1))
+  done
+  printf '%s' "$saved" | pbcopy
+  if [ "$text" = "$sentinel" ] || [ -z "$text" ]; then
+    echo "Nothing selected." >&2
+    exit 1
+  fi
+  printf '%s' "$text"
+}
+
+input_text() {
+  if [ -p /dev/stdin ] || [ -f /dev/stdin ]; then
+    local piped
+    piped="$(cat; printf x)"
+    piped="${piped%x}"
+    if [ -n "$piped" ]; then
+      printf '%s' "$piped"
+      return 0
+    fi
+  fi
+  selected_text
+}
+
+text="$(input_text; printf x)"
+text="${text%x}"
+
+pkill -f "$CLARIFY_APP" 2>/dev/null || true
+printf '%s' "$text" | "$CLARIFY_APP" >/dev/null 2>&1 &
+disown
