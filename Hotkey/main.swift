@@ -55,7 +55,15 @@ InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
     return noErr
 }, 1, &pressedEvent, nil, nil)
 
-guard let registeredHotkey = register(parsed(hotkey)) else { fail("\(hotkey) is already taken by another app.") }
+guard let listenedCombination = try? HotkeyCombination.parse(hotkey) else {
+    FileHandle.standardError.write(Data("\(hotkey) in settings is not a valid hotkey. Change it in Clarify Settings.\n".utf8))
+    exit(0)
+}
+
+guard let registeredHotkey = register(listenedCombination) else {
+    FileHandle.standardError.write(Data("\(hotkey) is already taken by another app. Change it in Clarify Settings.\n".utf8))
+    exit(0)
+}
 
 let app = NSApplication.shared
 app.setActivationPolicy(.prohibited)
