@@ -3,7 +3,7 @@ set -euo pipefail
 
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 CLARIFY_ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
-CLARIFY_APP="$CLARIFY_ROOT/build/Clarify"
+CLARIFY_APP="$CLARIFY_ROOT/build/Clarify.app/Contents/MacOS/Clarify"
 
 selected_text() {
   local saved sentinel text attempts
@@ -20,7 +20,6 @@ selected_text() {
   done
   printf '%s' "$saved" | pbcopy
   if [ "$text" = "$sentinel" ] || [ -z "$text" ]; then
-    echo "Nothing selected." >&2
     exit 1
   fi
   printf '%s' "$text"
@@ -39,7 +38,9 @@ input_text() {
   selected_text
 }
 
-text="$(input_text; printf x)"
+if ! text="$(input_text; printf x)"; then
+  exec "$CLARIFY_ROOT/bin/clarify-scratchpad"
+fi
 text="${text%x}"
 
 pkill -f "$CLARIFY_APP" 2>/dev/null || true

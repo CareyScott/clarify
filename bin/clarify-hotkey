@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLARIFY_ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+LISTENER="$CLARIFY_ROOT/build/ClarifyHotkey"
+SETTINGS="$HOME/.config/clarify/settings.json"
+LABEL="com.careyscott.clarify.hotkey"
+AGENT_PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+DOMAIN="gui/$(id -u)"
+
+current_hotkey() {
+  if [ -f "$SETTINGS" ]; then
+    jq -r '.scratchPadHotkey // empty' "$SETTINGS"
+  fi
+}
+
+save_hotkey() {
+  mkdir -p "$(dirname "$SETTINGS")"
+  [ -f "$SETTINGS" ] || echo '{}' > "$SETTINGS"
+  local updated
+  updated="$(mktemp)"
+  jq "$@" "$SETTINGS" > "$updated"
+  mv "$updated" "$SETTINGS"
+}
+
+stop_listener() {
+  launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+}
+
+start_listener() {
+  mkdir -p "$(dirname "$AGENT_PLIST")" "$HOME/Library/Logs"
+  cat > "$AGENT_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>$LABEL</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>$LISTENER</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>StandardErrorPath</key>
+	<string>$HOME/Library/Logs/clarify-hotkey.log</string>
+</dict>
+</plist>
+PLIST
+  launchctl bootstrap "$DOMAIN" "$AGENT_PLIST"
+}
+
+case "${1:-}" in
+  "")
+    hotkey="$(current_hotkey)"
+    if [ -n "$hotkey" ]; then
+      echo "Scratch pad hotkey: $hotkey"
+    else
+      echo "No scratch pad hotkey set. Set one with: clarify-hotkey option+c"
+    fi
+    ;;
+  pause)
+    stop_listener
+    ;;
+  resume)
+    if [ -f "$AGENT_PLIST" ]; then
+      launchctl bootstrap "$DOMAIN" "$AGENT_PLIST" 2>/dev/null || true
+    fi
+    ;;
+  off)
+    stop_listener
+    rm -f "$AGENT_PLIST"
+    if [ -f "$SETTINGS" ]; then
+      save_hotkey 'del(.scratchPadHotkey)'
+    fi
+    echo "Scratch pad hotkey removed."
+    ;;
+  *)
+    hotkey="$*"
+    stop_listener
+    if ! "$LISTENER" --check "$hotkey"; then
+      if [ -f "$AGENT_PLIST" ]; then
+        launchctl bootstrap "$DOMAIN" "$AGENT_PLIST"
+        echo "Kept your previous hotkey: $(current_hotkey)" >&2
+      fi
+      exit 1
+    fi
+    save_hotkey --arg hotkey "$hotkey" '.scratchPadHotkey = $hotkey'
+    start_listener
+    echo "Scratch pad hotkey set to $hotkey."
+    ;;
+esac

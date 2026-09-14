@@ -5,17 +5,16 @@ enum ContextImage {
     private static let longestSide: CGFloat = 1568
     private static let jpegQuality = 0.75
 
-    static func images(on pasteboard: NSPasteboard) -> [NSImage] {
-        let imageFileOptions: [NSPasteboard.ReadingOptionKey: Any] = [
-            .urlReadingFileURLsOnly: true,
-            .urlReadingContentsConformToTypes: [UTType.image.identifier],
-        ]
-        let imageFiles = pasteboard.readObjects(forClasses: [NSURL.self], options: imageFileOptions) as? [URL] ?? []
-        if !imageFiles.isEmpty {
-            return imageFiles.compactMap { (try? Data(contentsOf: $0)).flatMap(NSImage.init(data:)) }
-        }
+    static func pastedImages(on pasteboard: NSPasteboard) -> [NSImage] {
+        let files = imageFiles(on: pasteboard)
+        if !files.isEmpty { return files }
         guard pasteboard.string(forType: .string) == nil else { return [] }
-        return pasteboard.readObjects(forClasses: [NSImage.self]) as? [NSImage] ?? []
+        return embeddedImages(on: pasteboard)
+    }
+
+    static func droppedImages(on pasteboard: NSPasteboard) -> [NSImage] {
+        let files = imageFiles(on: pasteboard)
+        return files.isEmpty ? embeddedImages(on: pasteboard) : files
     }
 
     static func jpeg(from image: NSImage) -> Data? {
@@ -35,5 +34,19 @@ enum ContextImage {
         context.cgContext.draw(source, in: bounds)
         context.flushGraphics()
         return bitmap.representation(using: .jpeg, properties: [.compressionFactor: jpegQuality])
+    }
+
+    private static func imageFiles(on pasteboard: NSPasteboard) -> [NSImage] {
+        let imageFileOptions: [NSPasteboard.ReadingOptionKey: Any] = [
+            .urlReadingFileURLsOnly: true,
+            .urlReadingContentsConformToTypes: [UTType.image.identifier],
+        ]
+        let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: imageFileOptions) as? [URL] ?? []
+        return urls.compactMap { (try? Data(contentsOf: $0)).flatMap(NSImage.init(data:)) }
+    }
+
+    private static func embeddedImages(on pasteboard: NSPasteboard) -> [NSImage] {
+        guard pasteboard.canReadItem(withDataConformingToTypes: [UTType.image.identifier]) else { return [] }
+        return pasteboard.readObjects(forClasses: [NSImage.self]) as? [NSImage] ?? []
     }
 }

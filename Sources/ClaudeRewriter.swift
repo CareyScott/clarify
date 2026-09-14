@@ -17,8 +17,6 @@ struct RewriteFailure: Error {
 }
 
 final class ClaudeRewriter {
-    private static let defaultModel = "sonnet"
-
     private let voiceGuide: String
     private var running: Process?
     private var requestNumber = 0
@@ -59,8 +57,7 @@ final class ClaudeRewriter {
     }
 
     private func arguments() -> [String] {
-        let requestedModel = ProcessInfo.processInfo.environment["CLARIFY_MODEL"] ?? ""
-        return [
+        [
             "-p",
             "--input-format", "stream-json",
             "--output-format", "stream-json",
@@ -69,7 +66,7 @@ final class ClaudeRewriter {
             "--setting-sources", "",
             "--strict-mcp-config",
             "--no-session-persistence",
-            "--model", requestedModel.isEmpty ? Self.defaultModel : requestedModel,
+            "--model", ClarifySettings.model,
             "--system-prompt", systemPrompt(),
         ]
     }
@@ -79,7 +76,9 @@ final class ClaudeRewriter {
         return """
         You tidy up text someone has already written in their own voice. Return their text, cleaned, not your version of it.
 
-        Keep their words, phrasing and structure wherever they already work. Fix spelling, grammar and punctuation. Make the idea clear: fix sentences that are hard to follow, cut repetition, and bring the main point forward only when it is buried. Do not add facts, ideas, greetings or sign-offs they did not write. Do not make it longer or more formal. Keep the language of the original. Keep line breaks, lists and code as given unless an instruction says otherwise.
+        Keep their words, phrasing and structure wherever they already work. Fix spelling, grammar and punctuation. Make the idea clear: fix sentences that are hard to follow, cut repetition, and bring the main point forward only when it is buried. Do not add facts, ideas, greetings or sign-offs they did not write. Do not make it longer or more formal. Keep the language of the original. Keep line breaks and lists as given unless an instruction says otherwise.
+
+        Code: wrap every inline reference to code in backticks, such as identifiers, function names, commands, file paths, config keys and field names. Put any code that spans more than one line in a fenced code block, with a language tag when the language is clear. Never change what is inside code, only how it is marked. When they describe logic as pseudo code, for example steps with if, else, for each or return, write it as clean pseudo code in a fenced block: one step per line, indentation for nesting, the same keywords throughout, and their names kept as they are. Keep their own sentences around a block, such as the line that introduces it. Do not turn pseudo code into a real programming language unless asked.
 
         When instructions are given, apply them to the current draft, latest last, keeping earlier ones in force. If the latest instruction is a question, answer it in the notes and leave the draft alone unless the answer calls for a change.
 

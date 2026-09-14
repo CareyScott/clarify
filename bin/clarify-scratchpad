@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLARIFY_ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+
+open -a "$CLARIFY_ROOT/build/Clarify.app" --args --scratchpad

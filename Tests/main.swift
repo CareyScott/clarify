@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 
 var failures = 0
@@ -68,5 +69,35 @@ let longRevision = longOriginal.replacingOccurrences(of: "word word", with: "wor
 let longSegments = WordDiff.segments(from: longOriginal, to: longRevision)
 expect("text past the table limit still rebuilds both sides",
        originalText(of: longSegments) == longOriginal && revisedText(of: longSegments) == longRevision)
+
+func parseError(_ text: String) -> HotkeyCombination.ParseError? {
+    do {
+        _ = try HotkeyCombination.parse(text)
+        return nil
+    } catch {
+        return error as? HotkeyCombination.ParseError
+    }
+}
+
+expect("option+c parses to the c key with option",
+       (try? HotkeyCombination.parse("option+c")) == HotkeyCombination(keyCode: UInt32(kVK_ANSI_C), carbonModifiers: UInt32(optionKey)))
+
+expect("spaces and case are ignored",
+       (try? HotkeyCombination.parse("Cmd + Shift + Space")) == HotkeyCombination(keyCode: UInt32(kVK_Space), carbonModifiers: UInt32(cmdKey | shiftKey)))
+
+expect("alt and ctrl aliases work",
+       (try? HotkeyCombination.parse("ctrl+alt+k")) == HotkeyCombination(keyCode: UInt32(kVK_ANSI_K), carbonModifiers: UInt32(controlKey | optionKey)))
+
+expect("a bare key is refused", parseError("c") == .needsCommandOptionOrControl)
+expect("shift alone is refused", parseError("shift+a") == .needsCommandOptionOrControl)
+expect("an unknown modifier is named", parseError("hyper+c") == .unknownModifier("hyper"))
+expect("an unknown key is named", parseError("option+é") == .unknownKey("é"))
+expect("an empty hotkey is refused", parseError("  ") == .empty)
+
+expect("key code maps back to its key name", HotkeyCombination.keyName(forKeyCode: kVK_ANSI_C) == "c")
+expect("option+c shows as ⌥C", HotkeyText.symbols(for: "option+c") == "⌥C")
+expect("modifiers show in macOS order", HotkeyText.symbols(for: "Cmd + Shift + Space") == "⇧⌘Space")
+expect("aliases show the same symbols", HotkeyText.symbols(for: "alt+ctrl+return") == "⌃⌥↩")
+expect("recorded text is checked", HotkeyText.problem(with: "shift+a") != nil && HotkeyText.problem(with: "option+c") == nil)
 
 exit(failures == 0 ? 0 : 1)
