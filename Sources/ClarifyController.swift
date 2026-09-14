@@ -11,6 +11,7 @@ final class ClarifyController {
     private static let clarifyBundlePrefix = "com.careyscott.clarify"
 
     private let source: DraftSource
+    private let onFinish: () -> Void
     private var pasteTarget: NSRunningApplication?
     private var original: String
     private var draft: String
@@ -30,8 +31,9 @@ final class ClarifyController {
             && !(app.bundleIdentifier ?? "").hasPrefix(clarifyBundlePrefix)
     }
 
-    init(source: DraftSource, original: String, pasteTarget: NSRunningApplication?, rewriter: ClaudeRewriter) {
+    init(source: DraftSource, original: String, pasteTarget: NSRunningApplication?, rewriter: ClaudeRewriter, onFinish: @escaping () -> Void) {
         self.source = source
+        self.onFinish = onFinish
         self.pasteTarget = Self.canReceivePaste(pasteTarget) ? pasteTarget : nil
         self.original = original
         self.draft = original
@@ -43,7 +45,7 @@ final class ClarifyController {
         panel.onAddScreenshot = { [weak self] in self?.addScreenshot() }
         panel.onAddImages = { [weak self] images in self?.attach(images) }
         panel.onRemoveContextImage = { [weak self] index in self?.removeContextImage(at: index) }
-        panel.onCancel = { [weak self] in self?.quit() }
+        panel.onCancel = { [weak self] in self?.finish() }
         panel.onOpenSettings = { Self.openSettings() }
         activationObserver = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             NSApp.setActivationPolicy(.accessory)
@@ -63,8 +65,17 @@ final class ClarifyController {
             requestRevision()
             return
         }
+        guard isComposing else {
+            panel.showNearPointer(activatingApp: true)
+            requestRevision()
+            return
+        }
         panel.showComposer()
         panel.showNearPointer(activatingApp: true)
+    }
+
+    func reveal() {
+        panel.reveal(activatingApp: isScratchpad)
     }
 
     private var isScratchpad: Bool {
@@ -185,7 +196,7 @@ final class ClarifyController {
             copyDraft()
             return
         }
-        guard FrontAppPaste.isAllowed() else {
+        guard AccessibilityPermission.isGranted() else {
             Clipboard.copy(draft)
             panel.showNote("Copied, press ⌘V to paste. To paste directly, allow Accessibility for the app that launched Clarify.")
             return
@@ -193,7 +204,7 @@ final class ClarifyController {
         panel.hide()
         let activationDelay = bringPasteTargetForward()
         DispatchQueue.main.asyncAfter(deadline: .now() + activationDelay) {
-            FrontAppPaste.paste(self.draft) { NSApp.terminate(nil) }
+            FrontAppPaste.paste(self.draft) { self.finish() }
         }
     }
 
@@ -215,8 +226,14 @@ final class ClarifyController {
         NSWorkspace.shared.openApplication(at: settingsApp, configuration: NSWorkspace.OpenConfiguration())
     }
 
-    private func quit() {
+    private func finish() {
         rewriter.cancel()
-        NSApp.terminate(nil)
+        panel.close()
+        if let activationObserver { NotificationCenter.default.removeObserver(activationObserver) }
+        if let appSwitchObserver { NSWorkspace.shared.notificationCenter.removeObserver(appSwitchObserver) }
+        activationObserver = nil
+        appSwitchObserver = nil
+        NSApp.setActivationPolicy(.accessory)
+        onFinish()
     }
 }

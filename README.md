@@ -29,7 +29,7 @@ Run Clarify Scratch Pad from Raycast (give it a hotkey) or `clarify-scratchpad` 
 
 The pad takes focus, so dictation tools that type into the front app, such as Wispr Flow or macOS Dictation, write straight into it. Running the command again while a pad is open brings it back rather than starting over. Clarify Selection also opens the pad when nothing is selected.
 
-There is no hotkey by default. To open the pad from anywhere, set one with `clarify-hotkey option+c` (any mix of cmd, option, control and shift with a letter, digit, space or return). `clarify-hotkey` shows the current one and `clarify-hotkey off` removes it. The setting lives in `~/.config/clarify/settings.json` as `scratchPadHotkey`, and a small listener starts at login only while one is set. It needs no permissions. A hotkey on the Raycast command works just as well if you prefer that. Note that option+c normally types ç, so that character is lost while it is set.
+There is no hotkey by default. To open the pad from anywhere, set one with `clarify-hotkey option+c` (any mix of cmd, option, control and shift with a letter, digit, space or return). `clarify-hotkey` shows the current one and `clarify-hotkey off` removes it. The setting lives in `~/.config/clarify/settings.json` as `scratchPadHotkey`. While one is set, Clarify itself stays running in the background from login and catches the hotkey directly, which is what lets the pad come to the front with the cursor in it while you are busy in another app. It needs no permissions. A hotkey on the Raycast command works just as well if you prefer that. Note that option+c normally types ç, so that character is lost while it is set.
 
 ## Your voice
 

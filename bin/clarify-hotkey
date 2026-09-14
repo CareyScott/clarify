@@ -2,7 +2,7 @@
 set -euo pipefail
 
 CLARIFY_ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
-LISTENER="$CLARIFY_ROOT/build/ClarifyHotkey"
+CLARIFY_APP="$CLARIFY_ROOT/build/Clarify.app/Contents/MacOS/Clarify"
 SETTINGS="$HOME/.config/clarify/settings.json"
 LABEL="com.careyscott.clarify.hotkey"
 AGENT_PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
@@ -38,7 +38,8 @@ start_listener() {
 	<string>$LABEL</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>$LISTENER</string>
+		<string>$CLARIFY_APP</string>
+		<string>--listen</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
@@ -83,7 +84,7 @@ case "${1:-}" in
   *)
     hotkey="$*"
     stop_listener
-    if ! "$LISTENER" --check "$hotkey"; then
+    if ! "$CLARIFY_APP" --check-hotkey "$hotkey"; then
       if [ -f "$AGENT_PLIST" ]; then
         launchctl bootstrap "$DOMAIN" "$AGENT_PLIST"
         echo "Kept your previous hotkey: $(current_hotkey)" >&2

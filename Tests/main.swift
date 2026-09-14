@@ -100,4 +100,29 @@ expect("modifiers show in macOS order", HotkeyText.symbols(for: "Cmd + Shift + S
 expect("aliases show the same symbols", HotkeyText.symbols(for: "alt+ctrl+return") == "⌃⌥↩")
 expect("recorded text is checked", HotkeyText.problem(with: "shift+a") != nil && HotkeyText.problem(with: "option+c") == nil)
 
+let plannedLayout = ["option+shift+c", "option+shift+s", "option+shift+e", "option+shift+t", "option+shift+x"]
+let sampleClaims = HotkeyConflicts.claudeCodeShortcuts + [
+    HotkeyClaim(ownerID: "claude.desktop", ownerName: "Claude desktop (quick entry)", hotkey: "control+space"),
+    HotkeyClaim(ownerID: HotkeyConflicts.speakOwner("speak-selection"), ownerName: "speak Speak Selection", hotkey: "control+option+s"),
+    HotkeyClaim(ownerID: HotkeyConflicts.clarifyScratchPadOwner, ownerName: "Clarify Scratch Pad", hotkey: "option+c"),
+]
+
+expect("Claude desktop Ctrl+Space converts to control+space",
+       HotkeyConflicts.claudeDesktopHotkey(fromAccelerator: "Ctrl+Space") == "control+space")
+expect("CommandOrControl converts to cmd",
+       HotkeyConflicts.claudeDesktopHotkey(fromAccelerator: "CommandOrControl+Shift+K") == "cmd+shift+k")
+expect("an unknown accelerator modifier is ignored",
+       HotkeyConflicts.claudeDesktopHotkey(fromAccelerator: "Hyper+K") == nil)
+expect("Claude Code option+t is refused and named",
+       HotkeyConflicts.conflict(for: "alt+t", claimedBy: HotkeyConflicts.clarifyScratchPadOwner, against: sampleClaims)?.contains("Claude Code (toggle extended thinking)") == true)
+expect("the Claude desktop shortcut is refused",
+       HotkeyConflicts.conflict(for: "ctrl+space", claimedBy: HotkeyConflicts.clarifyScratchPadOwner, against: sampleClaims)?.contains("Claude desktop") == true)
+expect("another tool's hotkey is refused",
+       HotkeyConflicts.conflict(for: "ctrl+opt+s", claimedBy: HotkeyConflicts.clarifyScratchPadOwner, against: sampleClaims)?.contains("Speak Selection") == true)
+expect("re-saving your own hotkey is allowed",
+       HotkeyConflicts.conflict(for: "option+c", claimedBy: HotkeyConflicts.clarifyScratchPadOwner, against: sampleClaims) == nil)
+expect("the planned option+shift layout is clear of Claude",
+       plannedLayout.allSatisfy { HotkeyConflicts.conflict(for: $0, claimedBy: "layout", against: HotkeyConflicts.claudeCodeShortcuts + sampleClaims.filter { $0.ownerID == "claude.desktop" }) == nil })
+expect("control+option+c shows as ⌃⌥C", HotkeyCombination.symbols(for: "control+option+c") == "⌃⌥C")
+
 exit(failures == 0 ? 0 : 1)

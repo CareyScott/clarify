@@ -41,6 +41,20 @@ struct HotkeyCombination: Equatable {
         ";": kVK_ANSI_Semicolon, "'": kVK_ANSI_Quote, "`": kVK_ANSI_Grave,
     ]
 
+    private static let modifierDisplayOrder: [(name: String, symbol: String)] = [
+        ("control", "⌃"), ("option", "⌥"), ("shift", "⇧"), ("cmd", "⌘"),
+    ]
+    private static let modifierAliases = ["ctrl": "control", "alt": "option", "opt": "option", "command": "cmd"]
+    private static let keySymbols = ["space": "Space", "return": "↩"]
+
+    static func symbols(for text: String) -> String {
+        let parts = text.lowercased().split(separator: "+").map { $0.trimmingCharacters(in: .whitespaces) }
+        guard let key = parts.last else { return text }
+        let names = Set(parts.dropLast().map { modifierAliases[$0] ?? $0 })
+        let modifiers = modifierDisplayOrder.filter { names.contains($0.name) }.map(\.symbol).joined()
+        return modifiers + (keySymbols[key] ?? key.uppercased())
+    }
+
     static func keyName(forKeyCode keyCode: Int) -> String? {
         keyCodes.first { $0.value == keyCode }?.key
     }

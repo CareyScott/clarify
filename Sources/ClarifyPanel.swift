@@ -177,6 +177,11 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
         window.orderOut(nil)
     }
 
+    func close() {
+        stopPulse()
+        window.close()
+    }
+
     func showComposer() {
         phase = .composing
         stopPulse()
@@ -290,6 +295,7 @@ final class ClarifyPanel: NSObject, NSTextFieldDelegate, NSTextViewDelegate {
     }
 
     private func configureWindow() {
+        window.isReleasedWhenClosed = false
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear

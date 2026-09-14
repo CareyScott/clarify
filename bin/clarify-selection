@@ -43,6 +43,6 @@ if ! text="$(input_text; printf x)"; then
 fi
 text="${text%x}"
 
-pkill -f "$CLARIFY_APP" 2>/dev/null || true
+pkill -xf "$CLARIFY_APP" 2>/dev/null || true
 printf '%s' "$text" | "$CLARIFY_APP" >/dev/null 2>&1 &
 disown

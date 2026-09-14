@@ -17,12 +17,12 @@ cp Resources/Settings-Info.plist "$SETTINGS_APP/Contents/Info.plist"
 mkdir -p build/Clarify.app/Contents/Resources "$SETTINGS_APP/Contents/Resources"
 cp Resources/Clarify.icns build/Clarify.app/Contents/Resources/Clarify.icns
 cp Resources/ClarifySettings.icns "$SETTINGS_APP/Contents/Resources/ClarifySettings.icns"
-swiftc -O -o build/Clarify.app/Contents/MacOS/Clarify Sources/*.swift Shared/*.swift -framework AppKit
-swiftc -O -o "$SETTINGS_APP/Contents/MacOS/ClarifySettings" Settings/*.swift Shared/*.swift Hotkey/HotkeyCombination.swift -framework AppKit -framework SwiftUI -framework Carbon
+swiftc -O -o build/Clarify.app/Contents/MacOS/Clarify Sources/*.swift Shared/*.swift -framework AppKit -framework Carbon
+swiftc -O -o "$SETTINGS_APP/Contents/MacOS/ClarifySettings" Settings/*.swift Shared/*.swift -framework AppKit -framework SwiftUI -framework Carbon
 codesign --force --sign - build/Clarify.app >/dev/null 2>&1
 codesign --force --sign - "$SETTINGS_APP" >/dev/null 2>&1
-swiftc -O -o build/ClarifyHotkey Hotkey/*.swift Shared/*.swift -framework AppKit -framework Carbon
-swiftc -o build/tests Sources/WordDiff.swift Hotkey/HotkeyCombination.swift Settings/HotkeyText.swift Tests/main.swift -framework AppKit -framework Carbon
+rm -f build/ClarifyHotkey
+swiftc -o build/tests Sources/WordDiff.swift Shared/HotkeyCombination.swift Shared/HotkeyConflicts.swift Settings/HotkeyText.swift Tests/main.swift -framework AppKit -framework Carbon
 build/tests >/dev/null || { build/tests; exit 1; }
 chmod +x bin/clarify-selection bin/clarify-scratchpad bin/clarify-hotkey bin/clarify-settings raycast/clarify-selection.sh raycast/clarify-scratchpad.sh raycast/clarify-settings.sh
 

@@ -8,13 +8,15 @@ enum Clipboard {
     }
 }
 
-enum FrontAppPaste {
-    private static let commandVKeyCode: CGKeyCode = 9
-
-    static func isAllowed() -> Bool {
+enum AccessibilityPermission {
+    static func isGranted() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
     }
+}
+
+enum FrontAppPaste {
+    private static let commandVKeyCode: CGKeyCode = 9
 
     static func paste(_ text: String, completion: @escaping () -> Void) {
         let previousClipboard = NSPasteboard.general.string(forType: .string)
