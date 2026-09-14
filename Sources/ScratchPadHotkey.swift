@@ -31,6 +31,9 @@ enum HotkeyRegistration {
 }
 
 final class ScratchPadHotkeyListener {
+    private static let heldModifiers: CGEventFlags = [.maskCommand, .maskAlternate, .maskControl, .maskShift]
+    private static let modifierReleaseTimeout: TimeInterval = 1.0
+
     private var controller: ClarifyController?
     private var activationObserver: NSObjectProtocol?
 
@@ -58,8 +61,10 @@ final class ScratchPadHotkeyListener {
             controller.reveal()
             return
         }
+        waitForModifierRelease()
         let pasteTarget = NSWorkspace.shared.frontmostApplication
         let selection = SelectedText.inFrontApp() ?? ""
+        log("Hotkey pressed in \(pasteTarget?.localizedName ?? "unknown app"): accessibility \(AXIsProcessTrusted() ? "on" : "off"), selection \(selection.count) characters")
         let voiceGuide = ClarifySettings.voiceGuide.trimmingCharacters(in: .whitespacesAndNewlines)
         let controller = ClarifyController(
             source: .scratchpad,
@@ -72,6 +77,17 @@ final class ScratchPadHotkeyListener {
         )
         self.controller = controller
         controller.start()
+    }
+
+    private func waitForModifierRelease() {
+        let deadline = Date().addingTimeInterval(Self.modifierReleaseTimeout)
+        while Date() < deadline && !CGEventSource.flagsState(.combinedSessionState).intersection(Self.heldModifiers).isEmpty {
+            usleep(20_000)
+        }
+    }
+
+    private func log(_ message: String) {
+        FileHandle.standardError.write(Data("\(Date()): \(message)\n".utf8))
     }
 
     private func stopListening(_ message: String) -> Never {
