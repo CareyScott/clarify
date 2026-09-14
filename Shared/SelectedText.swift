@@ -1,6 +1,13 @@
 import AppKit
 import ApplicationServices
 
+enum AccessibilityPermission {
+    static func isGranted() -> Bool {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
+    }
+}
+
 enum SelectedText {
     private static let copyKeyCode: CGKeyCode = 8
     private static let copyTimeout: TimeInterval = 0.5

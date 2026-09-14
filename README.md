@@ -53,7 +53,7 @@ Ways to run it:
 
 ## Permissions
 
-For Clarify Selection, the app that launches it (Raycast, the Services runner, your terminal) asks for these. For the scratch pad, Clarify asks for them itself. A rebuild signs the app afresh, so macOS may ask again after one.
+For Clarify Selection, the app that launches it (Raycast, the Services runner, your terminal) asks for these. For the scratch pad, Clarify asks for them itself. The install signs the apps with the identity named in `SIGNING_IDENTITY` or `~/.config/local-signing-identity`, for example an Apple Development certificate, so these permissions survive a rebuild. Without one the apps are signed ad hoc and macOS may ask again after each rebuild.
 
 - Accessibility, to paste the result back over the selection. Without it the result is copied and you press ⌘V yourself. `clarify-selection` also needs it to copy the selection when nothing is piped in.
 - Screen Recording, only for the camera button.

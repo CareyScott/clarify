@@ -8,13 +8,6 @@ enum Clipboard {
     }
 }
 
-enum AccessibilityPermission {
-    static func isGranted() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
-    }
-}
-
 enum FrontAppPaste {
     private static let commandVKeyCode: CGKeyCode = 9
 

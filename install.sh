@@ -3,6 +3,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="$HOME/.config/clarify"
+SIGNING_IDENTITY="${SIGNING_IDENTITY:-$(cat "$HOME/.config/local-signing-identity" 2>/dev/null || true)}"
+
+sign() {
+  if [ -n "$SIGNING_IDENTITY" ] && codesign --force --sign "$SIGNING_IDENTITY" "$1" >/dev/null 2>&1; then
+    return 0
+  fi
+  codesign --force --sign - "$1" >/dev/null 2>&1
+}
 
 command -v swiftc >/dev/null || { echo "swiftc is required (xcode-select --install)"; exit 1; }
 command -v claude >/dev/null || [ -x "$HOME/.local/bin/claude" ] || { echo "Claude Code is required"; exit 1; }
@@ -19,8 +27,8 @@ cp Resources/Clarify.icns build/Clarify.app/Contents/Resources/Clarify.icns
 cp Resources/ClarifySettings.icns "$SETTINGS_APP/Contents/Resources/ClarifySettings.icns"
 swiftc -O -o build/Clarify.app/Contents/MacOS/Clarify Sources/*.swift Shared/*.swift -framework AppKit -framework Carbon
 swiftc -O -o "$SETTINGS_APP/Contents/MacOS/ClarifySettings" Settings/*.swift Shared/*.swift -framework AppKit -framework SwiftUI -framework Carbon
-codesign --force --sign - build/Clarify.app >/dev/null 2>&1
-codesign --force --sign - "$SETTINGS_APP" >/dev/null 2>&1
+sign build/Clarify.app
+sign "$SETTINGS_APP"
 rm -f build/ClarifyHotkey
 swiftc -o build/tests Sources/WordDiff.swift Shared/HotkeyCombination.swift Shared/HotkeyConflicts.swift Settings/HotkeyText.swift Tests/main.swift -framework AppKit -framework Carbon
 build/tests >/dev/null || { build/tests; exit 1; }
